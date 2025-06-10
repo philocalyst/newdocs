@@ -1,9 +1,38 @@
-// Sources/DocsKit/Scrapers/UnifiedScraper.swift
+// Sources/NewDocs/Scrapers/Unified.swift
 
 import Alamofire
 import Foundation
 import Logging
 
+/// Simple actor to throttle remote requests to `limit` per minute.
+actor RateLimiter {
+  private let limit: Int
+  private var timestamps: [Date] = []
+
+  init(limit: Int) {
+    self.limit = limit
+  }
+
+  /// Suspends the current task until we're under `limit` requests/minute again.
+  func waitIfNeeded() async {
+    let now = Date()
+    let oneMinuteAgo = now.addingTimeInterval(-60)
+
+    // drop old timestamps
+    timestamps.removeAll { $0 <= oneMinuteAgo }
+
+    if timestamps.count >= limit, let oldest = timestamps.first {
+      let waitTime = 60 - now.timeIntervalSince(oldest) + 1
+      if waitTime > 0 {
+        try? await Task.sleep(nanoseconds: UInt64(waitTime * 1_000_000_000))
+      }
+    }
+
+    timestamps.append(now)
+  }
+}
+
+/// Denotes whether we fetch pages from disk or from HTTP.
 public enum ScraperSource {
   case local(directory: String)
   case remote(
@@ -14,6 +43,7 @@ public enum ScraperSource {
   )
 }
 
+/// A single class that can do both file-based and URL-based scraping.
 open class UnifiedScraper: Scraper {
   public let source: ScraperSource
   private let httpRequest: HTTPRequest
@@ -31,59 +61,67 @@ open class UnifiedScraper: Scraper {
     links: [String: String] = [:],
     source: ScraperSource,
     options: ScraperOptions = ScraperOptions(),
-    logger: Logger = Logger(label: "UnifiedScraper")
+    logger: Logger = .init(label: "UnifiedScraper")
   ) throws {
     self.source = source
     self.httpRequest = HTTPRequest(logger: logger)
-    // if remote & rateLimit given, build a rate‐limiter
+
+    // If remote + rateLimit, make a limiter; otherwise nil
     switch source {
-    case .remote(let rateLimit, _, _, _):
-      self.rateLimiter = rateLimit.map { RateLimiter(limit: $0) }
     case .local:
       self.rateLimiter = nil
-    }
 
-    // If local, verify the directory exists
-    if case let .local(dir) = source {
+      // ensure directory exists
+      let dir = {
+        if case let .local(d) = source { return d }
+        return ""
+      }()
       guard FileManager.default.fileExists(atPath: dir) else {
-        throw DocsError.setupError("Local source directory not found: \(dir)")
+        throw DocsError.setupError("Local source dir not found: \(dir)")
       }
+
+    case .remote(let rateLimit, _, _, _):
+      self.rateLimiter = rateLimit.map { RateLimiter(limit: $0) }
     }
 
     try super.init(
-      name: name, slug: slug, type: type,
-      baseURL: baseURL, rootPath: rootPath,
-      initialPaths: initialPaths, version: version,
-      release: release, links: links,
-      options: options, logger: logger
+      name: name,
+      slug: slug,
+      type: type,
+      baseURL: baseURL,
+      rootPath: rootPath,
+      initialPaths: initialPaths,
+      version: version,
+      release: release,
+      links: links,
+      options: options,
+      logger: logger
     )
   }
 
-  // MARK: – Request Single Page
+  // MARK: - Single-Page Fetching
 
   override public func requestOne(url: String) async throws -> HTTPResponse {
     switch source {
+
     case .local(let directory):
-      // Turn URL path into filesystem path
-      let relative = url.replacingOccurrences(of: baseURL.description, with: "")
-      let fileURL = URL(fileURLWithPath: directory)
-        .appendingPathComponent(relative)
+      let rel = url.replacingOccurrences(of: baseURL.description, with: "")
+      let fileURL = URL(fileURLWithPath: directory).appendingPathComponent(rel)
+
       do {
         let html = try String(contentsOf: fileURL, encoding: .utf8)
         return HTTPResponse(
-          url: url, statusCode: 200,
+          url: url,
+          statusCode: 200,
           headers: ["Content-Type": "text/html"],
           data: html.data(using: .utf8) ?? Data()
         )
       } catch {
         logger.warning("Failed to read \(fileURL.path): \(error)")
-        return HTTPResponse(
-          url: url, statusCode: 404,
-          headers: [:], data: Data()
-        )
+        return HTTPResponse(url: url, statusCode: 404, headers: [:], data: Data())
       }
 
-    case .remote(_, let headers, let params, let forceGzip):
+    case .remote(let rateLimit, let headers, let params, let forceGzip):
       if let limiter = rateLimiter {
         await limiter.waitIfNeeded()
       }
@@ -99,50 +137,33 @@ open class UnifiedScraper: Scraper {
     }
   }
 
-  // MARK: – Request Many Pages
+  // MARK: - Multi-Page Fetching
 
-  override public func requestAll(
-    urls: [String],
-    handler: @escaping (HTTPResponse) async throws -> [String]
-  ) async throws {
-    switch source {
-    case .local:
-      // same logic as FileScraper
-      var queue = urls
-      while !queue.isEmpty {
-        let url = queue.removeFirst()
-        let resp = try await requestOne(url: url)
-        let next = try await handler(resp)
-        queue.append(contentsOf: next)
-      }
+  /// Builds an AsyncStream of PageResult by repeatedly calling `requestOne`/`handler`.
+  override public func buildPages() async throws -> AsyncStream<PageResult> {
+    AsyncStream<PageResult>(bufferingPolicy: .unbounded) { continuation in
+      Task {
+        var history = Set(self.initialURLs.map { $0.lowercased() })
 
-    case .remote:
-      // same logic as URLScraper
-      var queue = urls
-      var active = 0
-      let maxC = options.maxConcurrency
-
-      while !queue.isEmpty || active > 0 {
-        while active < maxC && !queue.isEmpty {
-          let url = queue.removeFirst()
-          active += 1
-          Task {
-            defer { active -= 1 }
-            do {
-              if let limiter = rateLimiter {
-                await limiter.waitIfNeeded()
-              }
-              let resp = try await requestOne(url: url)
-              let next = try await handler(resp)
-              queue.append(contentsOf: next)
-            } catch {
-              logger.error("Error scraping \(url): \(error)")
+        do {
+          try await self.requestAll(urls: self.initialURLs) { response in
+            guard let page = try await self.handleResponse(response) else {
+              return []
             }
+            continuation.yield(page)
+
+            let next = page.internalURLs.filter {
+              history.insert($0.lowercased()).inserted
+            }
+
+            return next
           }
+        } catch {
+          self.logger.error("Error in buildPages loop: \(error)")
         }
-        try await Task.sleep(nanoseconds: 10_000_000)
+
+        continuation.finish()
       }
     }
   }
-
 }
