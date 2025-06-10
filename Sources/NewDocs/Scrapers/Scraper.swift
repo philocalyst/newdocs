@@ -108,7 +108,7 @@ open class Scraper: Doc {
     return response.isSuccess && response.isHTML && baseURL.contains(try! DocsURL(response.url))
   }
 
-  private func handleResponse(_ response: HTTPResponse) async throws -> PageResult? {
+  func handleResponse(_ response: HTTPResponse) async throws -> PageResult? {
     guard shouldProcessResponse(response) else { return nil }
 
     return try await instrument("process_response", metadata: ["url": response.url]) {
@@ -173,7 +173,14 @@ open class Scraper: Doc {
 }
 
 public struct ScraperOptions {
-  public let rateLimit: Int?
+  public var skip: [String]
+  public var skipPatterns: [NSRegularExpression]
+  public var only: [String]
+  public var onlyPatterns: [NSRegularExpression]
+  public var skipLinks: [String]
+  public var fixedInternalUrls: Bool
+  public var redirections: [String: String]
+  public var rateLimit: Int?
   public let maxConcurrency: Int
   public let timeout: TimeInterval
   public let retryCount: Int
