@@ -1,7 +1,7 @@
-// Sources/DocsKit/Core/URL+Extensions.swift
+// Sources/NewDocs/Core/URL+Extensions.swift
 import Foundation
 
-public struct DocsURL {
+public struct DocsURL: Equatable, Hashable {
   public let url: URL
 
   public init(_ string: String) throws {

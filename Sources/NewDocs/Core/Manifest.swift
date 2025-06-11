@@ -1,22 +1,21 @@
-// Sources/DocsKit/Core/Manifest.swift
+// Sources/NewDocs/Core/Manifest.swift
 import Foundation
 
-public class Manifest {
-  private let store: DocumentStore
-  private let docs: [Doc]
+public protocol ManifestGenerating {
+  func generate(docs: [Doc], store: DocumentStore) async throws
+}
+
+public struct Manifest: ManifestGenerating {
   private static let filename = "docs.json"
 
-  public init(store: DocumentStore, docs: [Doc]) {
-    self.store = store
-    self.docs = docs
-  }
+  public init() {}
 
-  public func store() async throws {
-    let jsonData = try await toJSON()
+  public func generate(docs: [Doc], store: DocumentStore) async throws {
+    let jsonData = try await toJSON(docs: docs, store: store)
     try await store.write(Self.filename, data: jsonData)
   }
 
-  public func asJSON() async throws -> [[String: Any]] {
+  private func asJSON(docs: [Doc], store: DocumentStore) async throws -> [[String: Any]] {
     var result: [[String: Any]] = []
 
     for doc in docs {
@@ -29,15 +28,14 @@ public class Manifest {
         continue
       }
 
-      // Add any additional metadata processing here
       result.append(json)
     }
 
     return result
   }
 
-  public func toJSON() async throws -> Data {
-    let jsonObject = try await asJSON()
+  private func toJSON(docs: [Doc], store: DocumentStore) async throws -> Data {
+    let jsonObject = try await asJSON(docs: docs, store: store)
     return try JSONSerialization.data(withJSONObject: jsonObject, options: .prettyPrinted)
   }
 }

@@ -1,9 +1,14 @@
-// Sources/DocsKit/Parsing/HTMLParser.swift
+// Sources/NewDocs/Parsing/HTMLParser.swift
 import Foundation
 import Logging
 import SwiftSoup
 
-public class HTMLParser {
+public protocol HTMLParsing {
+  var title: String? { get }
+  var document: Document { get }
+}
+
+public struct HTMLParser: HTMLParsing {
   public let title: String?
   public let document: Document
 
@@ -11,11 +16,9 @@ public class HTMLParser {
     if content.range(
       of: #"(?i)\A(?:\s|(?:<!--.*?-->))*<(?:\!doctype|html)"#, options: .regularExpression) != nil
     {
-      // Parse as full document
       document = try SwiftSoup.parse(content)
       title = try document.select("title").first()?.text()
     } else {
-      // Parse as fragment
       document = try SwiftSoup.parseBodyFragment(content)
       title = nil
     }

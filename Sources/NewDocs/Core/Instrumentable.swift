@@ -1,11 +1,9 @@
-// Sources/DocsKit/Core/Instrumentable.swift
+// Sources/NewDocs/Core/Instrumentable.swift
 import Foundation
 import Logging
 
 public protocol Instrumentable {
   var logger: Logger { get }
-  func instrument<T>(_ operation: String, metadata: [String: Any]?, operation: () async throws -> T)
-    async rethrows -> T
 }
 
 extension Instrumentable {

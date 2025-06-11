@@ -1,4 +1,4 @@
-// Sources/DocsKit/Models/Entry.swift
+// Sources/NewDocs/Models/Entry.swift
 import Foundation
 
 public struct Entry: Codable, Equatable, Hashable {
@@ -7,19 +7,23 @@ public struct Entry: Codable, Equatable, Hashable {
   public let type: String
 
   public init(name: String, path: String, type: String) throws {
-    guard !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+    let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+    let trimmedPath = path.trimmingCharacters(in: .whitespacesAndNewlines)
+    let trimmedType = type.trimmingCharacters(in: .whitespacesAndNewlines)
+
+    guard !trimmedName.isEmpty else {
       throw DocsError.invalidEntry("missing name")
     }
-    guard !path.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+    guard !trimmedPath.isEmpty else {
       throw DocsError.invalidEntry("missing path")
     }
-    guard !type.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+    guard !trimmedType.isEmpty else {
       throw DocsError.invalidEntry("missing type")
     }
 
-    self.name = name.trimmingCharacters(in: .whitespacesAndNewlines)
-    self.path = path.trimmingCharacters(in: .whitespacesAndNewlines)
-    self.type = type.trimmingCharacters(in: .whitespacesAndNewlines)
+    self.name = trimmedName
+    self.path = trimmedPath
+    self.type = trimmedType
   }
 
   public var isRoot: Bool {

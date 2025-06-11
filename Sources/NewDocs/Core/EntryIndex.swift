@@ -1,26 +1,44 @@
-// Sources/DocsKit/Core/EntryIndex.swift
+// Sources/NewDocs/Core/EntryIndex.swift
 import Foundation
 
-public class EntryIndex {
+public protocol EntryIndexing {
+  var isEmpty: Bool { get }
+  var count: Int { get }
+
+  mutating func add(_ entry: Entry)
+  mutating func add(_ entries: [Entry])
+  func asJSON() -> [String: Any]
+  func toJSON() throws -> Data
+}
+
+public struct EntryIndex: EntryIndexing {
   private var entries: [Entry] = []
   private var entrySet: Set<String> = []
   private var types: [String: DocType] = [:]
 
   public init() {}
 
-  public func add(_ entry: Entry) {
+  public var isEmpty: Bool {
+    return entries.isEmpty
+  }
+
+  public var count: Int {
+    return entries.count
+  }
+
+  public mutating func add(_ entry: Entry) {
     guard !entry.isRoot else { return }
     add([entry])
   }
 
-  public func add(_ entries: [Entry]) {
+  public mutating func add(_ entries: [Entry]) {
     for entry in entries {
       guard !entry.isRoot else { continue }
       addEntry(entry)
     }
   }
 
-  private func addEntry(_ entry: Entry) {
+  private mutating func addEntry(_ entry: Entry) {
     let entryJSON = try! JSONSerialization.data(withJSONObject: entry.asJSON())
     let entryString = String(data: entryJSON, encoding: .utf8)!
 
@@ -33,14 +51,6 @@ public class EntryIndex {
         types[entry.type] = DocType(name: entry.type, count: 1)
       }
     }
-  }
-
-  public var isEmpty: Bool {
-    return entries.isEmpty
-  }
-
-  public var count: Int {
-    return entries.count
   }
 
   public func asJSON() -> [String: Any] {
@@ -79,7 +89,6 @@ public class EntryIndex {
       if aSplit.count == 1 { return false }
       if bSplit.count == 1 { return true }
 
-      // Version comparison logic would go here
       return a.localizedCaseInsensitiveCompare(b) == .orderedAscending
     } else {
       return a.localizedCaseInsensitiveCompare(b) == .orderedAscending

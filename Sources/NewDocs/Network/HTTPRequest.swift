@@ -1,9 +1,24 @@
 import Alamofire
-// Sources/DocsKit/Network/HTTPRequest.swift
+// Sources/NewDocs/Network/HTTPRequest.swift
 import Foundation
 import Logging
 
-public class HTTPRequest: Instrumentable {
+public protocol HTTPRequesting {
+  func request(
+    _ url: String,
+    method: HTTPMethod,
+    parameters: [String: Any]?,
+    headers: HTTPHeaders?
+  ) async throws -> HTTPResponse
+}
+
+extension HTTPRequesting {
+  public func request(_ url: String) async throws -> HTTPResponse {
+    return try await request(url, method: .get, parameters: nil, headers: nil)
+  }
+}
+
+public struct HTTPRequest: HTTPRequesting, Instrumentable {
   public let logger: Logger
   private let session: Session
 

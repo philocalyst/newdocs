@@ -1,17 +1,25 @@
-// Sources/DocsKit/Core/PageDatabase.swift
+// Sources/NewDocs/Core/PageDatabase.swift
 import Foundation
 
-public class PageDatabase {
+public protocol PageDatabaseProtocol {
+  var isEmpty: Bool { get }
+
+  mutating func add(path: String, content: String)
+  func asJSON() -> [String: Any]
+  func toJSON() throws -> Data
+}
+
+public struct PageDatabase: PageDatabaseProtocol {
   private var pages: [String: String] = [:]
 
   public init() {}
 
-  public func add(path: String, content: String) {
-    pages[path] = content
-  }
-
   public var isEmpty: Bool {
     return pages.isEmpty
+  }
+
+  public mutating func add(path: String, content: String) {
+    pages[path] = content
   }
 
   public func asJSON() -> [String: Any] {

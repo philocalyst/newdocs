@@ -1,4 +1,4 @@
-// Sources/DocsKit/Storage/DocumentStore.swift
+// Sources/NewDocs/Storage/DocumentStore.swift
 import Foundation
 
 public protocol DocumentStore {
@@ -11,7 +11,7 @@ public protocol DocumentStore {
   func list(_ directory: String) async throws -> [String]
 }
 
-public class FileSystemStore: DocumentStore {
+public struct FileSystemStore: DocumentStore {
   private let baseDirectory: URL
 
   public init(baseDirectory: String) throws {

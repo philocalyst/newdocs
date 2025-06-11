@@ -1,4 +1,4 @@
-// Sources/DocsKit/Models/DocType.swift
+// Sources/NewDocs/Models/DocType.swift
 import Foundation
 
 public struct DocType: Codable, Equatable, Hashable {

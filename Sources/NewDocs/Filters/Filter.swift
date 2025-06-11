@@ -1,4 +1,4 @@
-// Sources/DocsKit/Filters/Filter.swift
+// Sources/NewDocs/Filters/Filter.swift
 import Foundation
 import Logging
 import SwiftSoup
@@ -58,12 +58,17 @@ public struct FilterContext {
   }
 }
 
-public class FilterStack {
+public protocol FilterStacking {
+  mutating func push(_ filter: Filter)
+  func apply(to document: Document, context: FilterContext) throws -> Document
+}
+
+public struct FilterStack: FilterStacking {
   private var filters: [Filter] = []
 
   public init() {}
 
-  public func push(_ filter: Filter) {
+  public mutating func push(_ filter: Filter) {
     filters.append(filter)
   }
 
