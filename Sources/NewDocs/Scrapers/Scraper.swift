@@ -67,28 +67,29 @@ open class Scraper: Doc {
   }
 
   override public func buildPages() async throws -> AsyncStream<PageResult> {
-    return AsyncStream { continuation in
+    AsyncStream<PageResult>(bufferingPolicy: .unbounded) { continuation in
       Task {
-        var history = Set(initialURLs.map { $0.lowercased() })
+        var history = Set(self.initialURLs.map { $0.lowercased() })
 
-        await instrument("scraper_running", metadata: ["urls": initialURLs]) {
-          do {
-            try await requestAll(urls: initialURLs) { response in
-              guard let data = try await self.handleResponse(response) else { return [] }
-              continuation.yield(data)
-
-              let nextURLs = data.internalURLs.filter { url in
-                history.insert(url.lowercased()).inserted
-              }
-
-              await self.instrument("scraper_queued", metadata: ["urls": nextURLs]) {}
-              return nextURLs
+        do {
+          try await self.requestAll(urls: self.initialURLs) { response in
+            // your per-page handler
+            guard let page = try await self.handleResponse(response) else {
+              return []
             }
-            continuation.finish()
-          } catch {
-            continuation.finish(throwing: error)
+
+            continuation.yield(page)
+
+            // queue up any newly discovered URLs
+            return page.internalURLs.filter {
+              history.insert($0.lowercased()).inserted
+            }
           }
+        } catch {
+          self.logger.error("Error in buildPages loop: \(error)")
         }
+
+        continuation.finish()
       }
     }
   }
@@ -172,6 +173,8 @@ open class Scraper: Doc {
   }
 }
 
+// In Sources/NewDocs/Scrapers/Scraper.swift (or wherever you declared ScraperOptions)
+
 public struct ScraperOptions {
   public var skip: [String]
   public var skipPatterns: [NSRegularExpression]
@@ -186,11 +189,25 @@ public struct ScraperOptions {
   public let retryCount: Int
 
   public init(
+    skip: [String] = [],
+    skipPatterns: [NSRegularExpression] = [],
+    only: [String] = [],
+    onlyPatterns: [NSRegularExpression] = [],
+    skipLinks: [String] = [],
+    fixedInternalUrls: Bool = false,
+    redirections: [String: String] = [:],
     rateLimit: Int? = nil,
     maxConcurrency: Int = 20,
     timeout: TimeInterval = 30,
     retryCount: Int = 3
   ) {
+    self.skip = skip
+    self.skipPatterns = skipPatterns
+    self.only = only
+    self.onlyPatterns = onlyPatterns
+    self.skipLinks = skipLinks
+    self.fixedInternalUrls = fixedInternalUrls
+    self.redirections = redirections
     self.rateLimit = rateLimit
     self.maxConcurrency = maxConcurrency
     self.timeout = timeout
