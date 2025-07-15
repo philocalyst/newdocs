@@ -1,15 +1,13 @@
-// Sources/NewDocs/Core/Scraper.swift
-
 import Foundation
 import Logging
 import SwiftSoup
 
 public enum ScraperSource {
-  case local(directory: String)
+  case local(directory: URL)
   case remote(
     rateLimit: Int? = nil,
     headers: [String: String] = ["User-Agent": "NewDocs"],
-    params: [String: Any] = [:],
+    params: [URLQueryItem] = [],
     forceGzip: Bool = false
   )
 }
@@ -27,6 +25,11 @@ public protocol Scraper: Doc {
 
   /// Primitive you must implement
   func fetch(_ url: String) async throws -> HTTPResponse
+
+  func extractEntries(
+    from document: Document,
+    context: FilterContext
+  ) throws -> [Entry]
 
   /// Default‐overrideable hooks
   func shouldProcessResponse(_ response: HTTPResponse) -> Bool
