@@ -1,4 +1,6 @@
-// Sources/NewDocs/Core/Instrumentable.swift
+// Implements a tracing-like API for measuring and analyzing asynchronus operations.
+// This activates and ends automagically !
+
 import Foundation
 import Logging
 

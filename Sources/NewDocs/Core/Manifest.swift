@@ -1,11 +1,10 @@
-// Sources/NewDocs/Core/Manifest.swift
 import Foundation
 
-public protocol ManifestGenerating {
+public protocol ManifestProtocol {
   func generate(docs: [Doc], store: DocumentStore) async throws
 }
 
-public struct Manifest: ManifestGenerating {
+public struct Manifest: ManifestProtocol {
   private static let filename = "docs.json"
 
   public init() {}
