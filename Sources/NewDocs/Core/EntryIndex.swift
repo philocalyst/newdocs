@@ -1,4 +1,3 @@
-// Sources/NewDocs/Core/EntryIndex.swift
 import Foundation
 
 public protocol EntryIndexing {
@@ -12,9 +11,7 @@ public protocol EntryIndexing {
 }
 
 public struct EntryIndex: EntryIndexing {
-  private var entries: [Entry] = []
-  private var entrySet: Set<String> = []
-  private var types: [String: DocType] = [:]
+  private var entries: Set<Entry> = []
 
   public init() {}
 
@@ -28,51 +25,47 @@ public struct EntryIndex: EntryIndexing {
 
   public mutating func add(_ entry: Entry) {
     guard !entry.isRoot else { return }
-    add([entry])
+    entries.insert(entry)
   }
 
   public mutating func add(_ entries: [Entry]) {
     for entry in entries {
       guard !entry.isRoot else { continue }
-      addEntry(entry)
-    }
-  }
-
-  private mutating func addEntry(_ entry: Entry) {
-    let entryJSON = try! JSONSerialization.data(withJSONObject: entry.asJSON())
-    let entryString = String(data: entryJSON, encoding: .utf8)!
-
-    if entrySet.insert(entryString).inserted {
-      entries.append(entry)
-      if var type = types[entry.type] {
-        type.count += 1
-        types[entry.type] = type
-      } else {
-        types[entry.type] = DocType(name: entry.type, count: 1)
-      }
+      self.entries.insert(entry)
     }
   }
 
   public func asJSON() -> [String: Any] {
+    // Sort the entries by their names
     let sortedEntries = entries.sorted { a, b in
-      return sortFunction(a.name, b.name)
+      sortNames(a.name, b.name)
     }
 
-    let sortedTypes = Array(types.values).sorted { a, b in
-      return sortFunction(a.name, b.name)
-    }
+    // Build the types map, and enforce conversion to DocType. Where each key (Name) corresponds to a DocType
+    let typesMap: [String: DocType] = Dictionary(grouping: sortedEntries, by: \.type)
+      .mapValues { group in
+        DocType(name: group[0].type, count: group.count)
+      }
+
+    // Convert to JSON and sort the types by names
+    let sortedTypesJSON = typesMap.values
+      .sorted { sortNames($0.name, $1.name) }
+      .map { $0.asJSON() }
 
     return [
       "entries": sortedEntries.map { $0.asJSON() },
-      "types": sortedTypes.map { $0.asJSON() },
+      "types": sortedTypesJSON,
     ]
   }
 
   public func toJSON() throws -> Data {
-    return try JSONSerialization.data(withJSONObject: asJSON(), options: [])
+    return try JSONSerialization.data(
+      withJSONObject: asJSON(),
+      options: .prettyPrinted
+    )
   }
 
-  private func sortFunction(_ a: String, _ b: String) -> Bool {
+  private func sortNames(_ a: String, _ b: String) -> Bool {
     let aFirstByte = a.first?.asciiValue ?? 0
     let bFirstByte = b.first?.asciiValue ?? 0
 

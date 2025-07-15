@@ -1,4 +1,6 @@
 // Sources/NewDocs/Storage/DocumentStore.swift
+// VERY GENERIC storage, designed to be interacted with through the docstorer, which handles the actual document-specific writing...
+
 import Foundation
 
 public protocol DocumentStore {
@@ -27,14 +29,17 @@ public struct FileSystemStore: DocumentStore {
     )
   }
 
+  /// Convenience function to write string contents to the specified path
   public func write(_ path: String, content: String) async throws {
     try await write(path, data: content.data(using: .utf8) ?? Data())
   }
 
+  /// Convenience function to write data to the specificed path
   public func write(_ path: String, data: Data) async throws {
     let fileURL = baseDirectory.appendingPathComponent(path)
     let directoryURL = fileURL.deletingLastPathComponent()
 
+    // Creates directories as necessary up to the component
     try FileManager.default.createDirectory(
       at: directoryURL,
       withIntermediateDirectories: true,

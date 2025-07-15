@@ -1,4 +1,8 @@
-// Sources/NewDocs/Filters/Filter.swift
+// Filtering for an HTML document, meant to be used to reduce unwanted structure.
+// Think ads, nesting, etc. Basically an interface to build helpers ontop of,
+// to pare down a messy document. Allows us to create simple methods that are universally useful,
+// Like normalizing URLS :)
+
 import Foundation
 import Logging
 import SwiftSoup

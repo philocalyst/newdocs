@@ -1,4 +1,3 @@
-// Sources/NewDocs/Core/Doc.swift
 import Foundation
 import Logging
 
@@ -9,12 +8,11 @@ public enum OutdatedState: String, CaseIterable {
 }
 
 public protocol Doc: Instrumentable {
-  var name: String { get }
-  var slug: String { get }
+  var name: String { get }  // The name you'd expect to see it referred to as
+  var slug: String { get }  // The battle-ready slug for encoding and references
   var type: String { get }
-  var version: String? { get }
-  var release: String? { get }
-  var links: [String: String] { get }
+  var latest: String? { get }  // The latest version we're aware of in the "software"
+  var links: [String: URL] { get }
 
   func buildPages() -> AsyncStream<PageResult>
   func getLatestVersion() async throws -> String
@@ -23,18 +21,22 @@ public protocol Doc: Instrumentable {
 }
 
 extension Doc {
+  /// Returns the typical pathing for an index
   public var indexPath: String {
     return "\(slug)/index.json"
   }
 
+  /// Returns the typical pathing for a DB
   public var dbPath: String {
     return "\(slug)/db.json"
   }
 
+  /// Returns the typical pathing for the meta files
   public var metaPath: String {
     return "\(slug)/meta.json"
   }
 
+  /// Returns the Doc as a JSONL object
   public func asJSON() -> [String: Any] {
     var json: [String: Any] = [
       "name": name,
@@ -46,27 +48,29 @@ extension Doc {
       json["links"] = links
     }
 
-    if let version = version {
-      json["version"] = version
-    }
-
-    if let release = release {
+    if let release = latest {
       json["release"] = release
     }
 
     return json
   }
 
+  /// Returns the version of the scraper. If none is found, a 1.0.0
   public func getScraperVersion() async throws -> String {
-    return release ?? "1.0.0"
+    return latest ?? "1.0.0"
   }
 
+  /// Determine whether or not the doc has outdated contents
   public func outdatedState(scraperVersion: String, latestVersion: String) -> OutdatedState {
+    // Break the input string into major/minor/patch components
     let scraperParts = scraperVersion.components(separatedBy: CharacterSet(charactersIn: ".-"))
       .compactMap { Int($0) }
+
+    // Break the input string into major/minor/patch components
     let latestParts = latestVersion.components(separatedBy: CharacterSet(charactersIn: ".-"))
       .compactMap { Int($0) }
 
+    // Iterate through and determine equality
     for i in 0..<min(2, min(scraperParts.count, latestParts.count)) {
       if i == 0 && latestParts[i] > scraperParts[i] {
         return .outdatedMajor
@@ -109,6 +113,7 @@ extension Doc {
 
   public func getLatestGitHubRelease(owner: String, repo: String) async throws -> String {
     let json = try await fetchJSON(
+      // Getting the release endpoint
       from: "https://api.github.com/repos/\(owner)/\(repo)/releases/latest")
     guard let tagName = json["tag_name"] as? String else {
       throw DocsError.parsingError("Could not parse GitHub release tag")
