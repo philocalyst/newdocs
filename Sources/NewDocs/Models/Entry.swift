@@ -1,10 +1,9 @@
-// Sources/NewDocs/Models/Entry.swift
 import Foundation
 
 public struct Entry: Codable, Equatable, Hashable {
-  public let name: String
-  public let path: String
-  public let type: String
+  public let name: String  // Semnatic name for the doc (std::time)
+  public let path: String  // The location of the doc (rust/std/time)
+  public let type: String  // The kind of documentation (module, class, etc.)
 
   public init(name: String, path: String, type: String) throws {
     let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
