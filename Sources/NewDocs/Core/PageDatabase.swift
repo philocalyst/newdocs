@@ -1,4 +1,3 @@
-// Sources/NewDocs/Core/PageDatabase.swift
 import Foundation
 
 public protocol PageDatabaseProtocol {

@@ -1,4 +1,3 @@
-// Sources/NewDocs/Network/RateLimiter.swift
 import Foundation
 
 actor RateLimiter {

@@ -1,4 +1,3 @@
-// Sources/NewDocs/Core/ScraperOptions.swift
 import Foundation
 
 public struct ScraperOptions {

@@ -1,4 +1,3 @@
-// Sources/NewDocs/Core/DocsError.swift
 import Foundation
 
 public enum DocsError: Error, CustomStringConvertible {

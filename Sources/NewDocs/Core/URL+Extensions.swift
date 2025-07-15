@@ -1,4 +1,3 @@
-// Sources/NewDocs/Core/URL+Extensions.swift
 import Foundation
 
 public struct DocsURL: Equatable, Hashable {

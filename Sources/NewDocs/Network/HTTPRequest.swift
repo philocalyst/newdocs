@@ -1,5 +1,4 @@
 import Alamofire
-// Sources/NewDocs/Network/HTTPRequest.swift
 import Foundation
 import Logging
 

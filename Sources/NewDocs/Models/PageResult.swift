@@ -1,4 +1,3 @@
-// Sources/NewDocs/Models/PageResult.swift
 import Foundation
 
 public struct PageResult {
