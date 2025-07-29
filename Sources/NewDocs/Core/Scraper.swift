@@ -12,7 +12,6 @@ public enum ScraperSource {
   )
 }
 
-/// Your pure‐protocol scraper interface
 public protocol Scraper: Doc {
   var baseURL: DocsURL { get }
   var rootURL: DocsURL { get }
@@ -115,8 +114,6 @@ extension Scraper {
       currentURL: try DocsURL(response.url),
       rootURL: rootURL,
       rootPath: rootPath,
-      version: version,
-      release: release,
       links: links,
       initialPaths: initialPaths,
       logger: logger

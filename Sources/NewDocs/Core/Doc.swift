@@ -1,5 +1,6 @@
 import Foundation
 import Logging
+import SemVer
 
 public enum OutdatedState: String, CaseIterable {
   case upToDate = "Up-to-date"
@@ -10,14 +11,12 @@ public enum OutdatedState: String, CaseIterable {
 public protocol Doc: Instrumentable {
   var name: String { get }  // The name you'd expect to see it referred to as
   var slug: String { get }  // The battle-ready slug for encoding and references
-  var type: String { get }
-  var latest: String? { get }  // The latest version we're aware of in the "software"
+  var version: Version? { get }  // The latest version we're aware of in the "software"
   var links: [String: URL] { get }
 
   func buildPages() -> AsyncStream<PageResult>
   func getLatestVersion() async throws -> String
   func getScraperVersion() async throws -> String
-  func outdatedState(scraperVersion: String, latestVersion: String) -> OutdatedState
 }
 
 extension Doc {
@@ -31,7 +30,7 @@ extension Doc {
     return "\(slug)/db.json"
   }
 
-  /// Returns the typical pathing for the meta files
+  /// Returns the typicalR pathing for the meta files
   public var metaPath: String {
     return "\(slug)/meta.json"
   }
@@ -41,54 +40,17 @@ extension Doc {
     var json: [String: Any] = [
       "name": name,
       "slug": slug,
-      "type": type,
     ]
 
     if !links.isEmpty {
       json["links"] = links
     }
 
-    if let release = latest {
+    if let release = version {
       json["release"] = release
     }
 
     return json
-  }
-
-  /// Returns the version of the scraper. If none is found, a 1.0.0
-  public func getScraperVersion() async throws -> String {
-    return latest ?? "1.0.0"
-  }
-
-  /// Determine whether or not the doc has outdated contents
-  public func outdatedState(scraperVersion: String, latestVersion: String) -> OutdatedState {
-    // Break the input string into major/minor/patch components
-    let scraperParts = scraperVersion.components(separatedBy: CharacterSet(charactersIn: ".-"))
-      .compactMap { Int($0) }
-
-    // Break the input string into major/minor/patch components
-    let latestParts = latestVersion.components(separatedBy: CharacterSet(charactersIn: ".-"))
-      .compactMap { Int($0) }
-
-    // Iterate through and determine equality
-    for i in 0..<min(2, min(scraperParts.count, latestParts.count)) {
-      if i == 0 && latestParts[i] > scraperParts[i] {
-        return .outdatedMajor
-      }
-      if i == 1 && latestParts[i] > scraperParts[i] {
-        if (latestParts[0] == 0 && scraperParts[0] == 0)
-          || (latestParts[0] == 1 && scraperParts[0] == 1)
-        {
-          return .outdatedMajor
-        }
-        return .outdatedMinor
-      }
-      if latestParts[i] < scraperParts[i] {
-        return .upToDate
-      }
-    }
-
-    return .upToDate
   }
 
   // Utility methods for network requests

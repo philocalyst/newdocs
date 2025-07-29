@@ -16,7 +16,6 @@ public struct FilterContext {
   public let currentURL: DocsURL
   public let rootURL: DocsURL
   public let rootPath: String?
-  public let latest: String?
   public let links: [String: URL]
   public let initialPaths: [String]
   public let logger: Logger
@@ -26,7 +25,6 @@ public struct FilterContext {
     currentURL: DocsURL,
     rootURL: DocsURL,
     rootPath: String? = nil,
-    latest: String? = nil,
     links: [String: URL] = [:],
     initialPaths: [String] = [],
     logger: Logger = Logger(label: "Filter")
@@ -35,7 +33,6 @@ public struct FilterContext {
     self.currentURL = currentURL
     self.rootURL = rootURL
     self.rootPath = rootPath
-    self.latest = latest
     self.links = links
     self.initialPaths = initialPaths
     self.logger = logger
