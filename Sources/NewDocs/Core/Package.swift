@@ -9,6 +9,7 @@ public protocol Package {
   // These are all async due to possible network requests/file IO
   func get_available_versions() async throws -> [Version]  // All of the published versions.
   func flags() async throws -> [String]?  // All of the available flags.
+  func description() async throws -> String?  // A provided description as to the purpose of this package
   func dependencies() async throws -> [Package]  // Any other packages that this package relies on (none is an empty array)
   func dependents() async throws -> [Package]  // Any other packages that rely on this package (none is an empty array)
 
