@@ -67,6 +67,10 @@ extension Scraper {
       return false
     }
 
+    if response.body.contains("The requested version does not exist") {
+      return false
+    }
+
     // Check if URL is within our base domain/path
     guard let responseURL = URL(string: response.url) else { return false }
 
@@ -96,6 +100,8 @@ extension Scraper {
         var seen = Set<URL>()
         var queue = initialURLs
 
+        var count = 0
+
         while !queue.isEmpty {
           let path = queue.removeFirst()
           guard seen.insert(path).inserted else { continue }
@@ -106,6 +112,7 @@ extension Scraper {
             guard shouldProcessResponse(response) else { continue }
 
             let page = try await processResponse(response)
+            count += 1
             continuation.yield(page)
 
             // enqueue newly discovered URLs
@@ -117,6 +124,12 @@ extension Scraper {
           } catch {
             logger.error("Error scraping \(path): \(error)")
           }
+        }
+
+        print(count)
+
+        if count == 0 {
+          logger.error("No documentation was saved")
         }
 
         continuation.finish()
