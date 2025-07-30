@@ -10,13 +10,15 @@ struct GenerateRustReference {
 
       // 2) Get the Rust registry and the reference package
       let rustRegistry = newdocs.registry(for: .Rust)
-      let referencePkg = await rustRegistry.get_reference()
 
-      let version = Version(major: 1, minor: 0, patch: 0)
+      let options = await rustRegistry.search_packages(for: "serde")
 
-      // 4) Build the Documentation object
+      let theThing = try options.get()
+
+      let version = Version(major: 1, minor: 1, patch: 0)
+
       let doc = try await newdocs.buildPackage(
-        package: referencePkg,
+        package: theThing[0],
         version: version
       )
 
