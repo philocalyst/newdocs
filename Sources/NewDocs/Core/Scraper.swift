@@ -59,17 +59,39 @@ extension Scraper {
   /// Default: semver + HTML + same‐origin
   public func shouldProcessResponse(_ response: HTTPResponse) -> Bool {
     guard response.isSuccess && response.isHTML else { return false }
-    guard let u = URL(string: response.url),
-      baseURL == u
-    else {
+
+    // Skip redirects and not found pages
+    if response.body.contains("http-equiv=\"refresh\"")
+      || response.body.contains("<title>Not Found</title>") || response.body.isEmpty
+    {
       return false
     }
-    return true
+
+    // Check if URL is within our base domain/path
+    guard let responseURL = URL(string: response.url) else { return false }
+
+    // For rust-reference, allow anything under doc.rust-lang.org/
+    if self.slug == "rust-reference" {
+      let should =
+        responseURL.host == baseURL.host
+        && responseURL.absoluteString.hasPrefix(baseURL.absoluteString)
+
+      return should
+    }
+
+    // For std, allow anything under doc.rust-lang.org/
+    if self.slug == "std" {
+      return responseURL.host == baseURL.host
+        && responseURL.absoluteString.hasPrefix(baseURL.absoluteString)
+    }
+
+    // For regular crates, check docs.rs prefix
+    return responseURL.absoluteString.hasPrefix(baseURL.absoluteString)
   }
 
   /// The single stream of pages, run *sequentially* to avoid capturing `inout`
-  public func buildPages() -> AsyncStream<DocumentationPage> {
-    AsyncStream<DocumentationPage>(bufferingPolicy: .unbounded) { continuation in
+  public func buildPages() -> AsyncThrowingStream<DocumentationPage, Error> {
+    AsyncThrowingStream<DocumentationPage, Error>(bufferingPolicy: .unbounded) { continuation in
       Task {
         var seen = Set<URL>()
         var queue = initialURLs
@@ -88,7 +110,7 @@ extension Scraper {
 
             // enqueue newly discovered URLs
             for url in page.internalURLs {
-              if seen.insert(url).inserted {
+              if !seen.contains(url) {
                 queue.append(url)
               }
             }
@@ -146,7 +168,7 @@ extension Scraper {
     return try aTags.compactMap { a in
       let href = try a.attr("href")
       guard !href.isEmpty, isInternalURL(href) else { return nil }
-      return URL(string: href)
+      return URL(string: href, relativeTo: baseURL)?.absoluteURL
     }
   }
 
