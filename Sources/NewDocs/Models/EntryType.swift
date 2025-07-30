@@ -3,7 +3,7 @@
 // Count is just the number of times we've seen this doctype relative to a particular doc
 import Foundation
 
-public struct DocType: Codable, Equatable, Hashable {
+public struct EntryType: Codable, Equatable, Hashable {
   public let name: String
   public var count: Int
 

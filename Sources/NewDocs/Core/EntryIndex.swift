@@ -41,10 +41,10 @@ public struct EntryIndex: EntryIndexing {
       sortNames(a.name, b.name)
     }
 
-    // Build the types map, and enforce conversion to DocType. Where each key (Name) corresponds to a DocType
-    let typesMap: [String: DocType] = Dictionary(grouping: sortedEntries, by: \.type)
+    // Build the types map, and enforce conversion to DocumentationType. Where each key (Name) corresponds to a DocumentationType
+    let typesMap: [String: EntryType] = Dictionary(grouping: sortedEntries, by: \.type)
       .mapValues { group in
-        DocType(name: group[0].type, count: group.count)
+        EntryType(name: group[0].type, count: group.count)
       }
 
     // Convert to JSON and sort the types by names
