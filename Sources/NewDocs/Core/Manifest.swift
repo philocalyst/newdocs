@@ -1,7 +1,7 @@
 import Foundation
 
 public protocol ManifestProtocol {
-  func generate(docs: [Doc], store: DocumentStore) async throws
+  func generate(docs: [Documentation], store: DocumentStore) async throws
 }
 
 public struct Manifest: ManifestProtocol {
@@ -9,12 +9,12 @@ public struct Manifest: ManifestProtocol {
 
   public init() {}
 
-  public func generate(docs: [Doc], store: DocumentStore) async throws {
+  public func generate(docs: [Documentation], store: DocumentStore) async throws {
     let jsonData = try await toJSON(docs: docs, store: store)
     try await store.write(Self.filename, data: jsonData)
   }
 
-  private func asJSON(docs: [Doc], store: DocumentStore) async throws -> [[String: Any]] {
+  private func asJSON(docs: [Documentation], store: DocumentStore) async throws -> [[String: Any]] {
     var result: [[String: Any]] = []
 
     for doc in docs {
@@ -33,7 +33,7 @@ public struct Manifest: ManifestProtocol {
     return result
   }
 
-  private func toJSON(docs: [Doc], store: DocumentStore) async throws -> Data {
+  private func toJSON(docs: [Documentation], store: DocumentStore) async throws -> Data {
     let jsonObject = try await asJSON(docs: docs, store: store)
     return try JSONSerialization.data(withJSONObject: jsonObject, options: .prettyPrinted)
   }
