@@ -170,6 +170,7 @@ extension Scraper {
     return try aTags.compactMap { a in
       let href = try a.attr("href")
       guard !href.isEmpty, isInternalURL(href) else { return nil }
+      guard !href.contains("#") else { return nil }  // Any fragment URLs are purely redudant
       return URL(string: href, relativeTo: contextualUrl)?.absoluteURL
     }
   }
