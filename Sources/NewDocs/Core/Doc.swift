@@ -8,7 +8,7 @@ public enum OutdatedState: String, CaseIterable {
   case outdatedMajor = "Outdated major version"
 }
 
-public protocol Doc: Instrumentable {
+public protocol Documentation: Instrumentable {
   var name: String { get }  // The name you'd expect to see it referred to as (Can just be a deritivitve of the slug)
   var slug: String { get }  // The battle-ready slug for encoding and references
   var version: Version? { get }  // The precise version of the doc
@@ -17,7 +17,7 @@ public protocol Doc: Instrumentable {
   func buildPages() -> AsyncThrowingStream<DocumentationPage, Error>
 }
 
-extension Doc {
+extension Documentation {
   /// Returns the typical pathing for an index
   public var indexPath: String {
     return "\(slug)/index.json"
@@ -33,7 +33,7 @@ extension Doc {
     return "\(slug)/meta.json"
   }
 
-  /// Returns the Doc as a JSONL object
+  /// Returns the Documentation as a JSONL object
   public func asJSON() -> [String: Any] {
     var json: [String: Any] = [
       "name": name,
@@ -56,7 +56,8 @@ extension Doc {
     let request = HTTPRequest(logger: logger)
     let response = try await request.request(urlString)
     guard response.isSuccess else {
-      throw DocsError.networkError("Failed to fetch \(urlString): \(response.statusCode)")
+      throw NewDocsError.networkError(
+        "Failed to fetch \(urlString): \(response.statusCode)")
     }
     return try response.asJSON()
   }
@@ -66,7 +67,8 @@ extension Doc {
     guard let distTags = json["dist-tags"] as? [String: Any],
       let version = distTags[tag] as? String
     else {
-      throw DocsError.parsingError("Could not parse npm version for \(package)")
+      throw NewDocsError.parsingError(
+        "Could not parse npm version for \(package)")
     }
     return version
   }
@@ -76,7 +78,7 @@ extension Doc {
       // Getting the release endpoint
       from: "https://api.github.com/repos/\(owner)/\(repo)/releases/latest")
     guard let tagName = json["tag_name"] as? String else {
-      throw DocsError.parsingError("Could not parse GitHub release tag")
+      throw NewDocsError.parsingError("Could not parse GitHub release tag")
     }
     return tagName.hasPrefix("v") ? String(tagName.dropFirst()) : tagName
   }
