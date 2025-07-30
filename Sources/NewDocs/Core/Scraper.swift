@@ -6,24 +6,24 @@ public enum ScraperSource {
   case local(directory: URL)
   case remote(
     rateLimit: Int? = nil,
-    headers: [String: String] = ["User-Agent": "NewDocs"],
+    headers: [String: String] = ["User-Agent": "NewDocumentations"],
     params: [URLQueryItem] = [],
     forceGzip: Bool = false
   )
 }
 
-public protocol Scraper: Doc {
-  var baseURL: DocsURL { get }
-  var rootURL: DocsURL { get }
+public protocol Scraper: Documentation {
+  var baseURL: URL { get }
+  var rootURL: URL { get }
   var rootPath: String? { get }
-  var initialPaths: [String] { get }
+  var initialPaths: [URL] { get }
   var options: ScraperOptions { get }
   var source: ScraperSource { get }
   var htmlFilters: FilterStack { get }
   var textFilters: FilterStack { get }
 
   /// Primitive you must implement
-  func fetch(_ url: String) async throws -> HTTPResponse
+  func fetch(_ url: URL) async throws -> HTTPResponse
 
   func extractEntries(
     from document: Document,
@@ -37,17 +37,17 @@ public protocol Scraper: Doc {
 
 extension Scraper {
   /// Compute your full URLs from the configured sub‐paths
-  public var initialURLs: [String] {
-    var urls = [rootURL.description]
-    urls.append(contentsOf: initialPaths.map { urlFor(path: $0) })
+  public var initialURLs: [URL] {
+    var urls = [rootURL]
+    urls.append(contentsOf: initialPaths.map { $0 })
     return urls
   }
 
-  public func urlFor(path: String) -> String {
+  public func urlFor(path: String) -> URL {
     if path.isEmpty || path == "/" {
-      return rootURL.description
+      return rootURL
     } else {
-      return baseURL.joining(path).description
+      return baseURL.appending(path: path)
     }
   }
 
@@ -59,8 +59,8 @@ extension Scraper {
   /// Default: semver + HTML + same‐origin
   public func shouldProcessResponse(_ response: HTTPResponse) -> Bool {
     guard response.isSuccess && response.isHTML else { return false }
-    guard let u = try? DocsURL(response.url),
-      baseURL.contains(u)
+    guard let u = URL(string: response.url),
+      baseURL == u
     else {
       return false
     }
@@ -68,16 +68,15 @@ extension Scraper {
   }
 
   /// The single stream of pages, run *sequentially* to avoid capturing `inout`
-  public func buildPages() -> AsyncStream<PageResult> {
-    AsyncStream<PageResult>(bufferingPolicy: .unbounded) { continuation in
+  public func buildPages() -> AsyncStream<DocumentationPage> {
+    AsyncStream<DocumentationPage>(bufferingPolicy: .unbounded) { continuation in
       Task {
-        var seen = Set<String>()
+        var seen = Set<URL>()
         var queue = initialURLs
 
         while !queue.isEmpty {
           let path = queue.removeFirst()
-          let key = path.lowercased()
-          guard seen.insert(key).inserted else { continue }
+          guard seen.insert(path).inserted else { continue }
 
           do {
             let raw = try await fetch(path)
@@ -88,10 +87,9 @@ extension Scraper {
             continuation.yield(page)
 
             // enqueue newly discovered URLs
-            for next in page.internalURLs {
-              let lower = next.lowercased()
-              if seen.insert(lower).inserted {
-                queue.append(next)
+            for url in page.internalURLs {
+              if seen.insert(url).inserted {
+                queue.append(url)
               }
             }
           } catch {
@@ -106,12 +104,12 @@ extension Scraper {
 
   /// Shared logic to turn an HTTPResponse → PageResult
   private func processResponse(_ response: HTTPResponse) async throws
-    -> PageResult
+    -> DocumentationPage
   {
     let parser = try HTMLParser(response.body)
     let context = FilterContext(
       baseURL: baseURL,
-      currentURL: try DocsURL(response.url),
+      currentURL: URL(string: response.url)!,
       rootURL: rootURL,
       rootPath: rootPath,
       links: links,
@@ -120,20 +118,19 @@ extension Scraper {
     )
 
     // 1) run your HTML filters
-    let htmlDoc = try htmlFilters.apply(to: parser.document, context: context)
+    let htmlDocumentation = try htmlFilters.apply(to: parser.document, context: context)
     // 2) run your text filters (they can pluck out entries, internalURLs, etc.)
-    let finalDoc = try textFilters.apply(to: htmlDoc, context: context)
+    let finalDocumentation = try textFilters.apply(to: htmlDocumentation, context: context)
 
     // 3) extract the results
-    let entries = try extractEntries(from: finalDoc, context: context)
-    let internalURLs = try extractInternalURLs(from: finalDoc)
+    let entries = try extractEntries(from: finalDocumentation, context: context)
+    let internalURLs = try extractInternalURLs(from: finalDocumentation)
 
-    return PageResult(
+    return DocumentationPage(
       path: context.subpath,
-      storePath: context.slug,
-      output: try finalDoc.html(),
+      content: try finalDocumentation.html(),
+      internalURLs: internalURLs,
       entries: entries,
-      internalURLs: internalURLs
     )
   }
 
@@ -144,12 +141,12 @@ extension Scraper {
     return []
   }
 
-  private func extractInternalURLs(from document: Document) throws -> [String] {
+  private func extractInternalURLs(from document: Document) throws -> [URL] {
     let aTags = try document.select("a[href]").array()
     return try aTags.compactMap { a in
       let href = try a.attr("href")
       guard !href.isEmpty, isInternalURL(href) else { return nil }
-      return href
+      return URL(string: href)
     }
   }
 
