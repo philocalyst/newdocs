@@ -1,4 +1,4 @@
-// Sources/NewDocs/Storage/DocumentStore.swift
+// Sources/NewDocumentations/Storage/DocumentStore.swift
 // VERY GENERIC storage, designed to be interacted with through the docstorer, which handles the actual document-specific writing...
 
 import Foundation
@@ -53,7 +53,7 @@ public struct FileSystemStore: DocumentStore {
     let fileURL = baseDirectory.appendingPathComponent(path)
     let data = try Data(contentsOf: fileURL)
     guard let content = String(data: data, encoding: .utf8) else {
-      throw DocsError.parsingError("Could not decode file as UTF-8: \(path)")
+      throw NewDocsError.parsingError("Could not decode file as UTF-8: \(path)")
     }
     return content
   }

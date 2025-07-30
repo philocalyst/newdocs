@@ -50,7 +50,7 @@ public struct HTTPRequest: HTTPRequesting, Instrumentable {
             )
             continuation.resume(returning: httpResponse)
           case .failure(let error):
-            continuation.resume(throwing: DocsError.networkError(error.localizedDescription))
+            continuation.resume(throwing: NewDocsError.networkError(error.localizedDescription))
           }
         }
       }

@@ -11,13 +11,13 @@ public struct Entry: Codable, Equatable, Hashable {
     let trimmedType = type.trimmingCharacters(in: .whitespacesAndNewlines)
 
     guard !trimmedName.isEmpty else {
-      throw DocsError.invalidEntry("missing name")
+      throw NewDocsError.invalidEntry("missing name")
     }
     guard !trimmedPath.isEmpty else {
-      throw DocsError.invalidEntry("missing path")
+      throw NewDocsError.invalidEntry("missing path")
     }
     guard !trimmedType.isEmpty else {
-      throw DocsError.invalidEntry("missing type")
+      throw NewDocsError.invalidEntry("missing type")
     }
 
     self.name = trimmedName
