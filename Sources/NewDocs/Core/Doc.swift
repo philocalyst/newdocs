@@ -8,7 +8,7 @@ public enum OutdatedState: String, CaseIterable {
   case outdatedMajor = "Outdated major version"
 }
 
-public protocol Documentation: Instrumentable {
+public protocol Documentation: Instrumentable, Encodable {
   var name: String { get }  // The name you'd expect to see it referred to as (Can just be a deritivitve of the slug)
   var slug: String { get }  // The battle-ready slug for encoding and references
   var version: Version { get }  // The precise version of the doc
@@ -17,33 +17,31 @@ public protocol Documentation: Instrumentable {
   func buildPages() -> AsyncThrowingStream<DocumentationPage, Error>
 }
 
+private enum CodingKeys: String, CodingKey {
+  case slug
+  case name
+  case links
+  case version
+}
+
 extension Documentation {
   /// Returns the typical pathing for an index
   public var indexPath: String {
     return "\(slug)/index.json"
   }
 
+  public func encode(to encoder: any Encoder) throws {
+    var container = encoder.container(keyedBy: CodingKeys.self)
+
+    try container.encode(slug, forKey: CodingKeys.slug)
+    try container.encode(name, forKey: CodingKeys.name)
+    try container.encode(links, forKey: CodingKeys.links)
+    try container.encode(version, forKey: CodingKeys.version)
+  }
+
   /// Returns the typicalR pathing for the meta files
   public var metaPath: String {
     return "\(slug)/meta.json"
-  }
-
-  /// Returns the Documentation as a JSONL object
-  public func asJSON() -> [String: Any] {
-    var json: [String: Any] = [
-      "name": name,
-      "slug": slug,
-    ]
-
-    if !links.isEmpty {
-      json["links"] = Dictionary(
-        uniqueKeysWithValues: links.map { (k, v) in (k, v.absoluteString) }
-      )
-    }
-
-    json["version"] = version.description
-
-    return json
   }
 
   // Utility methods for network requests
