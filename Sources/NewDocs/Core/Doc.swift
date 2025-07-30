@@ -23,11 +23,6 @@ extension Documentation {
     return "\(slug)/index.json"
   }
 
-  /// Returns the typical pathing for a DB
-  public var dbPath: String {
-    return "\(slug)/db.json"
-  }
-
   /// Returns the typicalR pathing for the meta files
   public var metaPath: String {
     return "\(slug)/meta.json"
