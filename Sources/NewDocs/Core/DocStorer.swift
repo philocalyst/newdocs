@@ -12,6 +12,31 @@ public protocol DocumentationStorerProtocol {
 struct Meta: Encodable {
   var information: Documentation
   var index: EntryIndex
+
+  enum CodingKeys: String, CodingKey {
+    case information
+    case index
+  }
+
+  func encode(to encoder: any Encoder) throws {
+    var container = encoder.container(keyedBy: CodingKeys.self)
+
+    let docInfo: [String: String] = [
+      "slug": information.slug,
+      "name": information.name,
+      "version": information.version.versionString(),
+    ]
+    try container.encode(docInfo, forKey: .information)
+
+    try container.encode(index, forKey: .index)
+  }
+
+  init(index: EntryIndex, information: Documentation) {
+    self.index = index
+    self.information = information
+  }
+}
+
 /// The default implementation for doc storage
 public struct DocumentationStorer: DocumentationStorerProtocol {
   private let logger: Logger
@@ -32,20 +57,13 @@ public struct DocumentationStorer: DocumentationStorerProtocol {
       pages.add(path: page.path, content: page.content)
     }
 
-    // Write index.json
-    let indexData = try index.toJSON()
-    try await store.write(doc.indexPath, data: indexData)
+    let encoder = JSONEncoder()
 
-    // Write db.json
-    let dbData = try pages.toJSON()
-    try await store.write(doc.dbPath, data: dbData)
+    // Create the wrapper for both
+    let full = Meta(index: index, information: doc)
 
-    // Write meta.json
-    var meta = doc.asJSON()
-    meta["mtime"] = Int(Date().timeIntervalSince1970)
-    meta["db_size"] = try await store.size(doc.dbPath)
-    let metaData = try JSONSerialization.data(withJSONObject: meta, options: .prettyPrinted)
-    try await store.write(doc.metaPath, data: metaData)
+    let fullData = try encoder.encode(full)
+    try await store.write(doc.metaPath, data: fullData)
 
     logger.info("Successfully stored doc: \(doc.slug)")
   }
