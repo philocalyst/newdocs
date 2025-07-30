@@ -129,9 +129,11 @@ extension Scraper {
     -> DocumentationPage
   {
     let parser = try HTMLParser(response.body)
+    let currentURL = URL(string: response.url)!
+
     let context = FilterContext(
       baseURL: baseURL,
-      currentURL: URL(string: response.url)!,
+      currentURL: currentURL,
       rootURL: rootURL,
       rootPath: rootPath,
       links: links,
@@ -146,7 +148,7 @@ extension Scraper {
 
     // 3) extract the results
     let entries = try extractEntries(from: finalDocumentation, context: context)
-    let internalURLs = try extractInternalURLs(from: finalDocumentation)
+    let internalURLs = try extractInternalURLs(from: finalDocumentation, contextualUrl: currentURL)
 
     return DocumentationPage(
       path: context.subpath,
@@ -163,12 +165,12 @@ extension Scraper {
     return []
   }
 
-  private func extractInternalURLs(from document: Document) throws -> [URL] {
+  private func extractInternalURLs(from document: Document, contextualUrl: URL) throws -> [URL] {
     let aTags = try document.select("a[href]").array()
     return try aTags.compactMap { a in
       let href = try a.attr("href")
       guard !href.isEmpty, isInternalURL(href) else { return nil }
-      return URL(string: href, relativeTo: baseURL)?.absoluteURL
+      return URL(string: href, relativeTo: contextualUrl)?.absoluteURL
     }
   }
 
