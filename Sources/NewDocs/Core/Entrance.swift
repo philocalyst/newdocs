@@ -1,6 +1,6 @@
 import SemVer
 
-public struct NewDocs {
+public struct NewDocumentations {
   public func registry(for language: Language) -> PackageRegistry {
 
   }
@@ -9,7 +9,7 @@ public struct NewDocs {
     package: Package,
     version: Version,
     features: [String] = [],
-  ) async throws -> Doc {
+  ) async throws -> Documentation {
     try await package.retrieve(at: version, flags: features)
   }
 }
