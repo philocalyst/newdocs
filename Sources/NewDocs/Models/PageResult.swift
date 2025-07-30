@@ -1,6 +1,6 @@
 import Foundation
 
-public struct PageResult {
+public struct DocumentationPage {
   public let path: String
   public let content: String
   public let entries: [Entry]
