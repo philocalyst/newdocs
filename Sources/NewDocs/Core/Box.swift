@@ -7,11 +7,11 @@ public protocol Package {
   var source: String { get }  // The associated parent/host; like the package manager it's hosted upon, or just the fact that it's the standard library reference. For a crates.io package, it might be "crates"
 
   // These are all async due to possible network requests/file IO
-  func get_available_versions() async throws -> [Version]  // All of the published versions.
-  func flags() async throws -> [String]?  // All of the available flags.
-  func description() async throws -> String?  // A provided description as to the purpose of this package
-  func dependencies() async throws -> [Package]  // Any other packages that this package relies on (none is an empty array)
-  func dependents() async throws -> [Package]  // Any other packages that rely on this package (none is an empty array)
+  func get_available_versions() async -> Result<[Version], NewNewNewNewNewNewNewDocsError>  // All of the published versions.
+  func flags() async -> Result<[String]?, NewNewNewNewNewNewNewDocsError>  // All of the available flags.
+  func description() async -> Result<String?, NewNewNewNewNewNewNewDocsError>  // A provided description as to the purpose of this package
+  func dependencies() async -> Result<[Package], NewNewNewNewNewNewNewDocsError>  // Any other packages that this package relies on (none is an empty array)
+  func dependents() async -> Result<[Package], NewNewNewNewNewNewNewDocsError>  // Any other packages that rely on this package (none is an empty array)
 
   // We should only require the slug for initialization. The name is purely cosmetic so not required
   init(slug: String, name: String?)
