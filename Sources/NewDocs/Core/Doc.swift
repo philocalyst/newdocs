@@ -9,10 +9,10 @@ public enum OutdatedState: String, CaseIterable {
 }
 
 public protocol Doc: Instrumentable {
-  var name: String { get }  // The name you'd expect to see it referred to as
+  var name: String { get }  // The name you'd expect to see it referred to as (Can just be a deritivitve of the slug)
   var slug: String { get }  // The battle-ready slug for encoding and references
-  var version: Version? { get }  // The latest version we're aware of in the "software"
-  var links: [String: URL] { get }
+  var version: Version? { get }  // The precise version of the doc
+  var links: [String: URL] { get }  // Any extraneous links like the source page, or the projects home
 
   func buildPages() -> AsyncStream<PageResult>
   func getLatestVersion() async throws -> String
