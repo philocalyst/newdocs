@@ -15,8 +15,6 @@ public protocol Doc: Instrumentable {
   var links: [String: URL] { get }  // Any extraneous links like the source page, or the projects home
 
   func buildPages() -> AsyncStream<PageResult>
-  func getLatestVersion() async throws -> String
-  func getScraperVersion() async throws -> String
 }
 
 extension Doc {
