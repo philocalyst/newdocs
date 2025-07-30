@@ -31,7 +31,7 @@ public protocol Scraper: Documentation {
   ) throws -> [Entry]
 
   /// Default‐overrideable hooks
-  func shouldProcessResponse(_ response: HTTPResponse) -> Bool
+  func shouldProcessResponse(_ response: HTTPResponse) -> Result<Bool, NewDocsError>  // This returns a result because currently it's my only net for capturing issues with the response, and a boolean communicates none of why the output might be faulty, I'm intending to capture those mistakes during the scraper loop and handle them appropriately.
   func preprocessResponse(_ response: HTTPResponse) -> HTTPResponse
 }
 
@@ -57,40 +57,20 @@ extension Scraper {
   }
 
   /// Default: semver + HTML + same‐origin
-  public func shouldProcessResponse(_ response: HTTPResponse) -> Bool {
-    guard response.isSuccess && response.isHTML else { return false }
+  private func shouldProcessResponse(_ response: HTTPResponse) -> Result<Bool, NewDocsError> {
+    guard response.isSuccess && response.isHTML else { return .success(false) }
 
     // Skip redirects and not found pages
     if response.body.contains("http-equiv=\"refresh\"")
       || response.body.contains("<title>Not Found</title>") || response.body.isEmpty
     {
-      return false
-    }
-
-    if response.body.contains("The requested version does not exist") {
-      return false
+      return .failure(NewDocsError.parsingError("Hit a redirect/not found page"))
     }
 
     // Check if URL is within our base domain/path
-    guard let responseURL = URL(string: response.url) else { return false }
+    guard let responseURL = URL(string: response.url) else { return .success(false) }
 
-    // For rust-reference, allow anything under doc.rust-lang.org/
-    if self.slug == "rust-reference" {
-      let should =
-        responseURL.host == baseURL.host
-        && responseURL.absoluteString.hasPrefix(baseURL.absoluteString)
-
-      return should
-    }
-
-    // For std, allow anything under doc.rust-lang.org/
-    if self.slug == "std" {
-      return responseURL.host == baseURL.host
-        && responseURL.absoluteString.hasPrefix(baseURL.absoluteString)
-    }
-
-    // For regular crates, check docs.rs prefix
-    return responseURL.absoluteString.hasPrefix(baseURL.absoluteString)
+    return .success(responseURL.absoluteString.hasPrefix(baseURL.absoluteString))
   }
 
   /// The single stream of pages, run *sequentially* to avoid capturing `inout`
@@ -109,7 +89,7 @@ extension Scraper {
           do {
             let raw = try await fetch(path)
             let response = preprocessResponse(raw)
-            guard shouldProcessResponse(response) else { continue }
+            guard try shouldProcessResponse(response).get() else { continue }
 
             let page = try await processResponse(response)
             count += 1
@@ -125,8 +105,6 @@ extension Scraper {
             logger.error("Error scraping \(path): \(error)")
           }
         }
-
-        print(count)
 
         if count == 0 {
           logger.error("No documentation was saved")
