@@ -2,7 +2,12 @@ import SemVer
 
 public struct NewDocumentations {
   public func registry(for language: Language) -> PackageRegistry {
-
+    switch language {
+    case .Rust:
+      return CargoRegistry()
+    default:
+      fatalError("Language \(language) not yet supported")
+    }
   }
 
   public func buildPackage(
