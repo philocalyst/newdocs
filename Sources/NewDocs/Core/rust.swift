@@ -308,19 +308,6 @@ public struct RustDocScraper: Scraper {
     return try await httpClient.request(fixedURL)
   }
 
-  public func shouldProcessResponse(_ response: HTTPResponse) throws -> Bool {
-    guard response.isSuccess && response.isHTML else { return false }
-
-    // Skip redirects and not found pages
-    if response.body.contains("http-equiv=\"refresh\"")
-      || response.body.contains("<title>Not Found</title>") || response.body.isEmpty
-    {
-      return false
-    }
-
-    return true
-  }
-
   public func preprocessResponse(_ response: HTTPResponse) -> HTTPResponse {
     // Fix code headers (similar to Ruby's parse hook)
     let fixedBody = response.body.replacingOccurrences(

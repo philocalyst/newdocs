@@ -57,7 +57,7 @@ extension Scraper {
   }
 
   /// Default: semver + HTML + same‐origin
-  private func shouldProcessResponse(_ response: HTTPResponse) -> Result<Bool, NewDocsError> {
+  public func shouldProcessResponse(_ response: HTTPResponse) -> Result<Bool, NewDocsError> {
     guard response.isSuccess && response.isHTML else { return .success(false) }
 
     // Skip redirects and not found pages
