@@ -11,7 +11,7 @@ public enum OutdatedState: String, CaseIterable {
 public protocol Documentation: Instrumentable {
   var name: String { get }  // The name you'd expect to see it referred to as (Can just be a deritivitve of the slug)
   var slug: String { get }  // The battle-ready slug for encoding and references
-  var version: Version? { get }  // The precise version of the doc
+  var version: Version { get }  // The precise version of the doc
   var links: [String: URL] { get }  // Any extraneous links like the source page, or the projects home
 
   func buildPages() -> AsyncThrowingStream<DocumentationPage, Error>
@@ -41,12 +41,12 @@ extension Documentation {
     ]
 
     if !links.isEmpty {
-      json["links"] = links
+      json["links"] = Dictionary(
+        uniqueKeysWithValues: links.map { (k, v) in (k, v.absoluteString) }
+      )
     }
 
-    if let release = version {
-      json["release"] = release
-    }
+    json["version"] = version.description
 
     return json
   }
