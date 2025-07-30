@@ -1,6 +1,6 @@
 import Foundation
 
-public enum DocsError: Error, CustomStringConvertible {
+public enum NewDocsError: Error, CustomStringConvertible {
   case setupError(String)
   case invalidEntry(String)
   case networkError(String)
