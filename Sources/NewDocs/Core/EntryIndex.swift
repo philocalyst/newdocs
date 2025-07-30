@@ -6,11 +6,9 @@ public protocol EntryIndexing {
 
   mutating func add(_ entry: Entry)
   mutating func add(_ entries: [Entry])
-  func asJSON() -> [String: Any]
-  func toJSON() throws -> Data
 }
 
-public struct EntryIndex: EntryIndexing {
+public struct EntryIndex: EntryIndexing, Encodable {
   private var entries: Set<Entry> = []
 
   public init() {}
@@ -35,7 +33,14 @@ public struct EntryIndex: EntryIndexing {
     }
   }
 
-  public func asJSON() -> [String: Any] {
+  enum CodingKeys: String, CodingKey {
+    case entries
+    case types
+  }
+
+  public func encode(to encoder: any Encoder) throws {
+    var container = encoder.container(keyedBy: CodingKeys.self)
+
     // Sort the entries by their names
     let sortedEntries = entries.sorted { a, b in
       sortNames(a.name, b.name)
@@ -50,19 +55,10 @@ public struct EntryIndex: EntryIndexing {
     // Convert to JSON and sort the types by names
     let sortedTypesJSON = typesMap.values
       .sorted { sortNames($0.name, $1.name) }
-      .map { $0.asJSON() }
 
-    return [
-      "entries": sortedEntries.map { $0.asJSON() },
-      "types": sortedTypesJSON,
-    ]
-  }
+    try container.encode(sortedEntries, forKey: CodingKeys.entries)
+    try container.encode(sortedTypesJSON, forKey: CodingKeys.types)
 
-  public func toJSON() throws -> Data {
-    return try JSONSerialization.data(
-      withJSONObject: asJSON(),
-      options: .prettyPrinted
-    )
   }
 
   private func sortNames(_ a: String, _ b: String) -> Bool {
