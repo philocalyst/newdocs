@@ -1,32 +1,32 @@
-// Contains the logic for the storing... Docs!! This is going to handle the composition
+// Contains the logic for the storing... Documentations!! This is going to handle the composition
 // Of all of the important doc information... think index, meta, and content, into the
 // formats they're expected to be.
 
 import Foundation
 import Logging
 
-public protocol DocStorerProtocol {
-  func store(_ doc: Doc, to store: DocumentStore) async throws
+public protocol DocumentationStorerProtocol {
+  func store(_ doc: Documentation, to store: DocumentStore) async throws
 }
 
 /// The default implementation for doc storage
-public struct DocStorer: DocStorerProtocol {
+public struct DocumentationStorer: DocumentationStorerProtocol {
   private let logger: Logger
 
-  public init(logger: Logger = Logger(label: "DocStorer")) {
+  public init(logger: Logger = Logger(label: "DocumentationStorer")) {
     self.logger = logger
   }
 
-  public func store(_ doc: Doc, to store: DocumentStore) async throws {
+  public func store(_ doc: Documentation, to store: DocumentStore) async throws {
     // Get empty (mutable) stores to build on top of :)
     var index = EntryIndex()
     var pages = PageDatabase()
 
     // Process all pages
-    for await page in doc.buildPages() {
-      try await store.write(page.storePath, content: page.output)
+    for try await page in doc.buildPages() {
+      try await store.write(page.path, content: page.content)
       index.add(page.entries)
-      pages.add(path: page.path, content: page.output)
+      pages.add(path: page.path, content: page.content)
     }
 
     // Write index.json
