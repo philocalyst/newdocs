@@ -12,21 +12,21 @@ public protocol Filter {
 }
 
 public struct FilterContext {
-  public let baseURL: DocsURL
-  public let currentURL: DocsURL
-  public let rootURL: DocsURL
+  public let baseURL: URL
+  public let currentURL: URL
+  public let rootURL: URL
   public let rootPath: String?
   public let links: [String: URL]
-  public let initialPaths: [String]
+  public let initialPaths: [URL]
   public let logger: Logger
 
   public init(
-    baseURL: DocsURL,
-    currentURL: DocsURL,
-    rootURL: DocsURL,
+    baseURL: URL,
+    currentURL: URL,
+    rootURL: URL,
     rootPath: String? = nil,
     links: [String: URL] = [:],
-    initialPaths: [String] = [],
+    initialPaths: [URL] = [],
     logger: Logger = Logger(label: "Filter")
   ) {
     self.baseURL = baseURL
@@ -52,7 +52,8 @@ public struct FilterContext {
   }
 
   public var isInitialPage: Bool {
-    return isRootPage || initialPaths.contains(subpath)
+    return isRootPage
+      || initialPaths.contains(where: { $0.path == subpath })
   }
 }
 
@@ -70,7 +71,9 @@ public struct FilterStack: FilterStacking {
     filters.append(filter)
   }
 
-  public func apply(to document: Document, context: FilterContext) throws -> Document {
+  public func apply(to document: Document, context: FilterContext) throws
+    -> Document
+  {
     var currentDocument = document
     for filter in filters {
       currentDocument = try filter.apply(to: currentDocument, context: context)
