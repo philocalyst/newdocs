@@ -9,6 +9,9 @@ public protocol DocumentationStorerProtocol {
   func store(_ doc: Documentation, to store: DocumentStore) async throws
 }
 
+struct Meta: Encodable {
+  var information: Documentation
+  var index: EntryIndex
 /// The default implementation for doc storage
 public struct DocumentationStorer: DocumentationStorerProtocol {
   private let logger: Logger
