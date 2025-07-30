@@ -1,4 +1,4 @@
-public enum Languages {
+public enum Language {
   case HTML
   case Javascript
   case CSS
