@@ -1,3 +1,5 @@
 public protocol Module {
-  var language: String { get }
+  func search_packages(for query: String) async throws -> [Package]?  // Search all of the available packages for a specific language and return any hits, where no hits are represented as a nil value (async and possible failures due to network requests)
+  func get_package(UUID: UInt64) async throws -> Package  // Find a specific package by UUID (can fail because it's performing a lookup, async for the same reason) A failed lookup will throw an error.
+  func reference() -> Package  // Return the package reflecting the language reference. Not falliable.
 }
