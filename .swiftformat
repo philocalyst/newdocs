@@ -1,2 +1,4 @@
---indentation tab
---tabwidth 2
+{
+  "indentation": "tab",
+  "tabWidth": 2
+}
